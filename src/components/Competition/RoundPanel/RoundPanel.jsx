@@ -3,7 +3,7 @@ import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 import { DragDropContext } from 'react-beautiful-dnd';
-
+import { FormControlLabel, Checkbox } from '@material-ui/core';
 import ScrambleList from '../../Scrambles/ScrambleList';
 import { groupBy, flatMap } from '../../../logic/utils';
 import { roundName } from '../../../logic/events';
@@ -46,8 +46,14 @@ export default class RoundPanel extends Component {
     super(props);
     this.state = {
       availableScrambles: this.props.availableScrambles,
+      includeAllScrambles: true,
     };
   }
+
+  handleIncludeAllScramblesCheckboxChange = (event) => {
+    this.setState({ includeAllScrambles: event.target.checked });
+    this.render();
+  };
 
   componentDidUpdate(prevProps) {
     let prevIds = this.state.availableScrambles.map((s) => s.id).sort();
@@ -79,7 +85,6 @@ export default class RoundPanel extends Component {
 
     // Insert the scramble to the new array at the correct spot
     destScrambles.splice(destination.index, 0, scramble);
-
     if (
       destination.droppableId === 'available' &&
       source.droppableId === 'available'
@@ -140,16 +145,38 @@ export default class RoundPanel extends Component {
     else this.handleGenericMove(source, destination);
   };
 
+  getRoundNumber() {
+    const { round } = this.props;
+    return parseInt(round.id.slice(-1));
+  }
+
   render() {
     const { event, round } = this.props;
     const { availableScrambles } = this.state;
+    let scramblesList = availableScrambles;
+
+    if (!this.state.includeAllScrambles)
+      scramblesList = scramblesList.filter(
+        (s) => s.roundNumber == this.getRoundNumber()
+      );
     return (
       <DragDropContext onDragEnd={this.handleScrambleMovement}>
         <Typography variant="h5" align="center" color="textSecondary">
           {roundName(event.rounds.length, round)}
         </Typography>
+        <FormControlLabel
+          style={{ padding: 16 }}
+          control={
+            <Checkbox
+              checked={this.state.includeAllScrambles}
+              onChange={this.handleIncludeAllScramblesCheckboxChange}
+              name="includeAllScrambles"
+            />
+          }
+          label="Include all rounds"
+        />
         <div style={{ padding: 16 }}>
-          <Grid container spacing={2} justify="center">
+          <Grid container spacing={2} justifyContent="center">
             <Grid item xs={6} align="center">
               {['333mbf', '333fm'].includes(event.id) ? (
                 <ListForAttemptBasedRound round={round} />
@@ -161,7 +188,7 @@ export default class RoundPanel extends Component {
               <Paper style={{ padding: 16 }}>
                 <Typography variant="h5">Available</Typography>
                 <ScrambleList
-                  scrambles={availableScrambles}
+                  scrambles={scramblesList}
                   holds="available"
                   round={round}
                 />
